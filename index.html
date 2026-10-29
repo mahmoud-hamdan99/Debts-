@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Debts</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Debts">
+<meta name="theme-color" content="#2e9e6f">
+<link rel="manifest" href='data:application/manifest+json,{"name":"Debts","short_name":"Debts","start_url":".","display":"standalone","background_color":"%23ffffff","theme_color":"%232e9e6f"}'>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--tx:#111;--mut:#6b7280;--line:#e5e7eb;--ac:#2e9e6f;--g:#16a34a;--r:#dc2626;--y:#d97706}
+html[data-theme=dark]{--bg:#0f1115;--card:#1a1d24;--tx:#f1f5f9;--mut:#9ca3af;--line:#2a2f3a}
+@media(prefers-color-scheme:dark){html[data-theme=auto]{--bg:#0f1115;--card:#1a1d24;--tx:#f1f5f9;--mut:#9ca3af;--line:#2a2f3a}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:-apple-system,system-ui,sans-serif;background:var(--bg);color:var(--tx);padding-bottom:calc(70px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;background:var(--ac);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:center;gap:10px;z-index:5}
+header h1{font-size:20px;margin:0;flex:1}
+header button{background:rgba(255,255,255,.2);color:#fff;border:0;border-radius:10px;padding:8px 12px;font-size:16px}
+main{padding:12px}
+.card{background:var(--card);border-radius:14px;padding:12px;margin-bottom:10px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.row{display:flex;align-items:center;gap:10px}
+.grow{flex:1;min-width:0}
+.mut{color:var(--mut);font-size:13px}
+.g{color:var(--g)}.r{color:var(--r)}.y{color:var(--y)}
+.b{font-weight:700}
+.big{font-size:18px;font-weight:700}
+.sum{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.item{padding:12px;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.list{padding:0}
+button,select,input,textarea{font:inherit}
+.btn{background:var(--ac);color:#fff;border:0;border-radius:12px;padding:12px 16px;font-weight:600;width:100%}
+.btn.sec{background:var(--line);color:var(--tx)}
+.btn.dan{background:var(--r)}
+.sm{width:auto;padding:6px 10px;font-size:13px;border-radius:9px}
+input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--tx);margin:4px 0 10px}
+label{font-size:13px;color:var(--mut)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--tx);border-radius:20px;padding:6px 12px;white-space:nowrap}
+.chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.badge{font-size:11px;padding:2px 7px;border-radius:8px;background:var(--line)}
+.badge.od{background:var(--r);color:#fff}
+.badge.ok{background:var(--g);color:#fff}
+nav.tabs{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs button{flex:1;background:none;border:0;padding:10px 0 8px;color:var(--mut);font-size:12px}
+nav.tabs button.on{color:var(--ac);font-weight:700}
+nav.tabs span{display:block;font-size:20px}
+.hidden{display:none!important}
+#modal,#lock{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:flex-end}
+#lock{background:var(--bg);align-items:center;justify-content:center}
+.sheet{background:var(--card);width:100%;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto}
+.fab{position:fixed;right:16px;bottom:calc(76px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;background:var(--ac);color:#fff;border:0;font-size:30px;box-shadow:0 4px 12px rgba(0,0,0,.25);z-index:4}
+html[dir=rtl] .fab{right:auto;left:16px}
+.pin{font-size:28px;letter-spacing:12px;text-align:center}
+.empty{text-align:center;color:var(--mut);padding:30px 10px}
+.tiny{font-size:12px}
+</style>
+</head>
+<body>
+<div id="lock" class="hidden"><div style="width:260px;text-align:center"><div class="big" style="margin-bottom:10px" id="lockTitle"></div><input id="pinIn" class="pin" type="password" inputmode="numeric" maxlength="4" autocomplete="off"><div id="pinErr" class="r tiny"></div></div></div>
+<header><button id="back" class="hidden">‹</button><h1 id="hTitle">Debts</h1><button id="hAct" class="hidden"></button></header>
+<main id="view"></main>
+<button id="fab" class="fab">+</button>
+<nav class="tabs" id="tabs"></nav>
+<div id="modal" class="hidden"><div class="sheet" id="sheet"></div></div>
+<script>
+const T={
+en:{debts:'Debts',upcoming:'Upcoming',planner:'Planner',settings:'Settings',owedToMe:'Owed to me',iOwe:'I owe',net:'Net',name:'Name',amount:'Amount',currency:'Currency',date:'Date',due:'Due date',note:'Note',kind:'Type',lent:'They borrowed from me',borrowed:'I borrowed from them',received:'They paid me',paid:'I paid them',save:'Save',cancel:'Cancel',delete:'Delete',edit:'Edit',search:'Search…',overdue:'Overdue',settled:'Settled',export:'Export backup (JSON)',import:'Import backup',share:'Share summary',lang:'Language',theme:'Theme',pin:'PIN lock',setPin:'Set PIN',removePin:'Remove PIN',enterPin:'Enter PIN',newPin:'Choose a 4-digit PIN',wrongPin:'Wrong PIN',monthly:'Monthly payment',months:'months',clearsBy:'clears by',noData:'Nothing here yet',addPerson:'Add person',confirmDel:'Delete this? This cannot be undone.',all:'All',dark:'Dark',light:'Light',auto:'Auto',backupNote:'Data lives only on this phone. Export a backup regularly.',history:'History',sortName:'Name',sortAmount:'Amount',sortDate:'Recent',theyOwe:'owes you',youOwe:'you owe',settledUp:'settled up',defCur:'Default currency',addEntry:'Add entry',editPerson:'Edit person',dueIn:'due',importOk:'Imported. Restart the app.',importBad:'Invalid file',shareYouOwe:'{n}, you owe me {a} as of {d}.',shareIOwe:'{n}, I owe you {a} as of {d}.',wipe:'Delete all data',copied:'Copied',sort:'Sort'},
+ar:{debts:'الديون',upcoming:'القادمة',planner:'خطة السداد',settings:'الإعدادات',owedToMe:'مستحق لي',iOwe:'عليّ',net:'الصافي',name:'الاسم',amount:'المبلغ',currency:'العملة',date:'التاريخ',due:'تاريخ الاستحقاق',note:'ملاحظة',kind:'النوع',lent:'اقترض مني',borrowed:'اقترضت منه',received:'دفع لي',paid:'دفعت له',save:'حفظ',cancel:'إلغاء',delete:'حذف',edit:'تعديل',search:'بحث…',overdue:'متأخر',settled:'مسدد',export:'تصدير نسخة احتياطية',import:'استيراد نسخة احتياطية',share:'مشاركة الملخص',lang:'اللغة',theme:'المظهر',pin:'قفل برمز',setPin:'تعيين رمز',removePin:'إزالة الرمز',enterPin:'أدخل الرمز',newPin:'اختر رمزاً من 4 أرقام',wrongPin:'رمز خاطئ',monthly:'الدفعة الشهرية',months:'شهر',clearsBy:'ينتهي في',noData:'لا يوجد شيء بعد',addPerson:'إضافة شخص',confirmDel:'حذف؟ لا يمكن التراجع.',all:'الكل',dark:'داكن',light:'فاتح',auto:'تلقائي',backupNote:'البيانات محفوظة على هذا الهاتف فقط. صدّر نسخة احتياطية بانتظام.',history:'السجل',sortName:'الاسم',sortAmount:'المبلغ',sortDate:'الأحدث',theyOwe:'مدين لك',youOwe:'أنت مدين',settledUp:'لا شيء',defCur:'العملة الافتراضية',addEntry:'إضافة عملية',editPerson:'تعديل الشخص',dueIn:'استحقاق',importOk:'تم الاستيراد. أعد فتح التطبيق.',importBad:'ملف غير صالح',shareYouOwe:'{n}، أنت مدين لي بـ {a} حتى تاريخ {d}.',shareIOwe:'{n}، أنا مدين لك بـ {a} حتى تاريخ {d}.',wipe:'حذف كل البيانات',copied:'تم النسخ',sort:'ترتيب'}};
+const KEY='debts.v1',$=s=>document.querySelector(s);
+const SIGN={lent:1,borrowed:-1,received:-1,paid:1};
+const CURS=['JOD','USD','EUR','GBP','SAR','AED','KWD','QAR','EGP','TRY'];
+let S=load(),view='home',pid=null,q='',sort='name',curF='',plan={};
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.people)return d}catch(e){}return{people:[],entries:[],settings:{lang:'en',theme:'auto',cur:'JOD',pin:''}}}
+function save(){localStorage.setItem(KEY,JSON.stringify(S))}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const t=k=>(T[S.settings.lang]||T.en)[k]||T.en[k]||k;
+const today=()=>new Date().toISOString().slice(0,10);
+const fmt=(n,c)=>Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+c;
+const esc=s=>String(s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+function balances(id){const b={};S.entries.filter(e=>e.personId===id).forEach(e=>{b[e.cur]=(b[e.cur]||0)+SIGN[e.kind]*e.amount});return b}
+function pname(id){const p=S.people.find(p=>p.id===id);return p?p.name:'?'}
+function applyTheme(){document.documentElement.dataset.theme=S.settings.theme;document.documentElement.dir=S.settings.lang==='ar'?'rtl':'ltr';document.documentElement.lang=S.settings.lang}
+function balLines(b,cls){let h='';for(const c in b){const v=b[c];if(Math.abs(v)<.005)continue;if(curF&&c!==curF)continue;h+=`<div class="${v>0?'g':'r'} ${cls||''}">${v>0?'+':'−'}${fmt(v,c)} <span class="mut tiny">${v>0?t('theyOwe'):t('youOwe')}</span></div>`}return h||`<div class="mut">${t('settledUp')}</div>`}
+function render(){applyTheme();const V=$('#view'),B=$('#back'),A=$('#hAct'),F=$('#fab');B.classList.toggle('hidden',view!=='person');A.classList.add('hidden');F.classList.toggle('hidden',!(view==='home'||view==='person'));
+$('#tabs').innerHTML=[['home','💰',t('debts')],['upcoming','📅',t('upcoming')],['planner','📈',t('planner')],['settings','⚙️',t('settings')]].map(x=>`<button class="${view===x[0]?'on':''}" onclick="go('${x[0]}')"><span>${x[1]}</span>${x[2]}</button>`).join('');
+if(view==='home')renderHome(V);else if(view==='person')renderPerson(V);else if(view==='upcoming')renderUpcoming(V);else if(view==='planner')renderPlanner(V);else renderSettings(V)}
+function go(v,id){view=v;pid=id||null;window.scrollTo(0,0);render()}
+function renderHome(V){$('#hTitle').textContent=t('debts');const o={},i={};S.people.forEach(p=>{const b=balances(p.id);for(const c in b){if(b[c]>.005)o[c]=(o[c]||0)+b[c];else if(b[c]<-.005)i[c]=(i[c]||0)-b[c]}});
+const curs=[...new Set(S.entries.map(e=>e.cur))];const net={};curs.forEach(c=>net[c]=(o[c]||0)-(i[c]||0));
+const line=(obj,cls)=>Object.keys(obj).filter(c=>!curF||c===curF).map(c=>`<div class="${cls} b">${fmt(obj[c],c)}</div>`).join('')||'<div class="mut">—</div>';
+let people=S.people.filter(p=>p.name.toLowerCase().includes(q.toLowerCase()));
+if(curF)people=people.filter(p=>Math.abs(balances(p.id)[curF]||0)>.005);
+const mag=p=>Object.values(balances(p.id)).reduce((a,v)=>a+Math.abs(v),0);
+const last=p=>S.entries.filter(e=>e.personId===p.id).map(e=>e.date).sort().pop()||'';
+people.sort((a,b)=>sort==='name'?a.name.localeCompare(b.name):sort==='amount'?mag(b)-mag(a):last(b).localeCompare(last(a)));
+V.innerHTML=`<div class="chips"><button class="chip ${curF?'':'on'}" onclick="curF='';render()">${t('all')}</button>${curs.map(c=>`<button class="chip ${curF===c?'on':''}" onclick="curF='${c}';render()">${c}</button>`).join('')}</div>
+<div class="sum"><div class="card"><div class="mut">${t('owedToMe')}</div>${line(o,'g')}</div><div class="card"><div class="mut">${t('iOwe')}</div>${line(i,'r')}</div></div>
+<div class="card"><div class="mut">${t('net')}</div>${Object.keys(net).filter(c=>!curF||c===curF).map(c=>`<div class="b ${net[c]>=0?'g':'r'}">${net[c]>=0?'+':'−'}${fmt(net[c],c)}</div>`).join('')||'<div class="mut">—</div>'}</div>
+<div class="row"><input class="grow" placeholder="${t('search')}" value="${esc(q)}" oninput="q=this.value;render()"><select style="width:auto" onchange="sort=this.value;render()"><option value="name" ${sort==='name'?'selected':''}>${t('sortName')}</option><option value="amount" ${sort==='amount'?'selected':''}>${t('sortAmount')}</option><option value="date" ${sort==='date'?'selected':''}>${t('sortDate')}</option></select></div>
+<div class="card list">${people.map(p=>`<div class="item row" onclick="go('person','${p.id}')"><div class="grow"><div class="b">${esc(p.name)}</div></div><div style="text-align:end">${balLines(balances(p.id),'tiny')}</div></div>`).join('')||`<div class="empty">${t('noData')}</div>`}</div>`}
+function renderPerson(V){const p=S.people.find(x=>x.id===pid);if(!p)return go('home');$('#hTitle').textContent=p.name;const A=$('#hAct');A.classList.remove('hidden');A.textContent='✎';A.onclick=()=>personForm(p);
+const es=S.entries.filter(e=>e.personId===pid).sort((a,b)=>b.date.localeCompare(a.date));const b=balances(pid);
+V.innerHTML=`<div class="card">${balLines(b,'big')}<div class="row" style="margin-top:10px"><button class="btn sec sm" onclick="shareP('${pid}')">${t('share')}</button></div></div>
+<div class="mut" style="margin:6px 4px">${t('history')}</div><div class="card list">${es.map(e=>{const s=SIGN[e.kind];const od=e.due&&!e.settled&&e.due<today()&&Math.abs(b[e.cur]||0)>.005;return`<div class="item"><div class="row"><div class="grow"><div class="b">${t(e.kind)}</div><div class="mut tiny">${e.date}${e.note?' · '+esc(e.note):''}</div>${e.due?`<div class="tiny ${od?'r':'mut'}">${t('dueIn')} ${e.due} ${od?`<span class="badge od">${t('overdue')}</span>`:e.settled?`<span class="badge ok">${t('settled')}</span>`:''}</div>`:''}</div><div class="${s>0?'g':'r'} b">${s>0?'+':'−'}${fmt(e.amount,e.cur)}</div></div><div class="row" style="margin-top:6px;gap:6px">${e.due?`<button class="btn sec sm" onclick="toggleSettled('${e.id}')">${e.settled?'↩':'✓ '+t('settled')}</button>`:''}<button class="btn sec sm" onclick="entryForm('${pid}','${e.id}')">${t('edit')}</button><button class="btn dan sm" onclick="delEntry('${e.id}')">${t('delete')}</button></div></div>`}).join('')||`<div class="empty">${t('noData')}</div>`}</div>`}
+function renderUpcoming(V){$('#hTitle').textContent=t('upcoming');const es=S.entries.filter(e=>e.due&&!e.settled&&(e.kind==='lent'||e.kind==='borrowed')&&Math.abs(balances(e.personId)[e.cur]||0)>.005).sort((a,b)=>a.due.localeCompare(b.due));
+V.innerHTML=`<div class="card list">${es.map(e=>{const od=e.due<today();return`<div class="item row" onclick="go('person','${e.personId}')"><div class="grow"><div class="b">${esc(pname(e.personId))}</div><div class="tiny ${od?'r':'mut'}">${e.due} ${od?`<span class="badge od">${t('overdue')}</span>`:''}</div></div><div class="${SIGN[e.kind]>0?'g':'r'} b">${fmt(e.amount,e.cur)}</div></div>`}).join('')||`<div class="empty">${t('noData')}</div>`}</div>`}
+function renderPlanner(V){$('#hTitle').textContent=t('planner');let rows=[];S.people.forEach(p=>{const b=balances(p.id);for(const c in b)if(Math.abs(b[c])>.005)rows.push({p,c,v:b[c]})});
+V.innerHTML=`<div class="card list">${rows.map(r=>{const k=r.p.id+r.c,m=plan[k]||0;let res='';if(m>0){const n=Math.ceil(Math.abs(r.v)/m);const d=new Date();d.setMonth(d.getMonth()+n);res=`<div class="tiny b">${n} ${t('months')} · ${t('clearsBy')} ${d.toISOString().slice(0,7)}</div>`}
+return`<div class="item"><div class="row"><div class="grow b">${esc(r.p.name)}</div><div class="${r.v>0?'g':'r'} b">${fmt(r.v,r.c)}</div></div><label>${t('monthly')}</label><input type="number" inputmode="decimal" value="${m||''}" oninput="plan['${k}']=+this.value;renderPlanner(document.querySelector('#view'))">${res}</div>`}).join('')||`<div class="empty">${t('noData')}</div>`}</div>`}
+function renderSettings(V){$('#hTitle').textContent=t('settings');const s=S.settings;
+V.innerHTML=`<div class="card"><label>${t('lang')}</label><select onchange="S.settings.lang=this.value;save();render()"><option value="en" ${s.lang==='en'?'selected':''}>English</option><option value="ar" ${s.lang==='ar'?'selected':''}>العربية</option></select>
+<label>${t('theme')}</label><select onchange="S.settings.theme=this.value;save();render()">${['auto','light','dark'].map(x=>`<option value="${x}" ${s.theme===x?'selected':''}>${t(x)}</option>`).join('')}</select>
+<label>${t('defCur')}</label><input list="curs" value="${s.cur}" onchange="S.settings.cur=this.value.toUpperCase().trim()||'JOD';save()"><datalist id="curs">${CURS.map(c=>`<option value="${c}">`).join('')}</datalist>
+<label>${t('pin')}</label>${s.pin?`<button class="btn sec" onclick="S.settings.pin='';save();render()">${t('removePin')}</button>`:`<button class="btn sec" onclick="setPin()">${t('setPin')}</button>`}</div>
+<div class="card"><div class="mut tiny" style="margin-bottom:8px">${t('backupNote')}</div><button class="btn" onclick="exportJ()">${t('export')}</button><div style="height:8px"></div><button class="btn sec" onclick="document.getElementById('imp').click()">${t('import')}</button><input type="file" id="imp" accept=".json,application/json" class="hidden" onchange="importJ(this)"><div style="height:8px"></div><button class="btn dan" onclick="if(confirm(t('confirmDel'))){localStorage.removeItem(KEY);location.reload()}">${t('wipe')}</button></div>
+<div class="mut tiny" style="text-align:center">v1.0 · offline</div>`}
+function modal(h){$('#sheet').innerHTML=h;$('#modal').classList.remove('hidden')}
+function closeM(){$('#modal').classList.add('hidden')}
+$('#modal').onclick=e=>{if(e.target.id==='modal')closeM()};
+function personForm(p){modal(`<div class="big" style="margin-bottom:8px">${p?t('editPerson'):t('addPerson')}</div><label>${t('name')}</label><input id="pn" value="${esc(p?p.name:'')}" autofocus><button class="btn" onclick="savePerson('${p?p.id:''}')">${t('save')}</button><div style="height:8px"></div>${p?`<button class="btn dan" onclick="delPerson('${p.id}')">${t('delete')}</button><div style="height:8px"></div>`:''}<button class="btn sec" onclick="closeM()">${t('cancel')}</button>`);setTimeout(()=>$('#pn').focus(),50)}
+function savePerson(id){const n=$('#pn').value.trim();if(!n)return;if(id){S.people.find(p=>p.id===id).name=n}else{const np={id:uid(),name:n};S.people.push(np);pid=np.id;view='person'}save();closeM();render()}
+function delPerson(id){if(!confirm(t('confirmDel')))return;S.people=S.people.filter(p=>p.id!==id);S.entries=S.entries.filter(e=>e.personId!==id);save();closeM();go('home')}
+function entryForm(personId,eid){const e=eid?S.entries.find(x=>x.id===eid):{kind:'lent',amount:'',cur:S.settings.cur,date:today(),due:'',note:''};
+modal(`<div class="big" style="margin-bottom:8px">${esc(pname(personId))}</div><label>${t('kind')}</label><select id="ek" onchange="document.getElementById('dueW').classList.toggle('hidden',!(this.value==='lent'||this.value==='borrowed'))">${['lent','borrowed','received','paid'].map(k=>`<option value="${k}" ${e.kind===k?'selected':''}>${t(k)}</option>`).join('')}</select>
+<div class="row"><div class="grow"><label>${t('amount')}</label><input id="ea" type="number" inputmode="decimal" step="0.01" value="${e.amount}"></div><div style="width:110px"><label>${t('currency')}</label><input id="ec" list="curs2" value="${esc(e.cur)}"><datalist id="curs2">${CURS.map(c=>`<option value="${c}">`).join('')}</datalist></div></div>
+<label>${t('date')}</label><input id="ed" type="date" value="${e.date}"><div id="dueW" class="${e.kind==='lent'||e.kind==='borrowed'?'':'hidden'}"><label>${t('due')}</label><input id="edu" type="date" value="${e.due||''}"></div>
+<label>${t('note')}</label><input id="en" value="${esc(e.note)}"><button class="btn" onclick="saveEntry('${personId}','${eid||''}')">${t('save')}</button><div style="height:8px"></div><button class="btn sec" onclick="closeM()">${t('cancel')}</button>`);setTimeout(()=>$('#ea').focus(),50)}
+function saveEntry(personId,eid){const a=parseFloat($('#ea').value);if(!(a>0))return;const k=$('#ek').value;const o={personId,kind:k,amount:a,cur:($('#ec').value||S.settings.cur).toUpperCase().trim(),date:$('#ed').value||today(),due:(k==='lent'||k==='borrowed')?$('#edu').value:'',note:$('#en').value.trim()};
+if(eid){Object.assign(S.entries.find(x=>x.id===eid),o)}else{o.id=uid();o.settled=false;S.entries.push(o)}save();closeM();render()}
+function delEntry(id){if(!confirm(t('confirmDel')))return;S.entries=S.entries.filter(e=>e.id!==id);save();render()}
+function toggleSettled(id){const e=S.entries.find(x=>x.id===id);e.settled=!e.settled;save();render()}
+async function shareP(id){const b=balances(id),n=pname(id);let lines=[];for(const c in b){const v=b[c];if(Math.abs(v)<.005)continue;lines.push(t(v>0?'shareYouOwe':'shareIOwe').replace('{n}',n).replace('{a}',fmt(v,c)).replace('{d}',today()))}
+const txt=lines.join('\n')||`${n}: ${t('settledUp')}`;if(navigator.share){try{await navigator.share({text:txt})}catch(e){}}else{await navigator.clipboard.writeText(txt);alert(t('copied'))}}
+function exportJ(){const blob=new Blob([JSON.stringify(S,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='debts-backup-'+today()+'.json';document.body.appendChild(a);a.click();a.remove()}
+function importJ(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.people||!d.entries)throw 0;S=d;save();alert(t('importOk'));location.reload()}catch(e){alert(t('importBad'))}};r.readAsText(f)}
+function setPin(){const a=prompt(t('newPin'));if(!a||!/^\d{4}$/.test(a))return;S.settings.pin=a;save();render()}
+function lock(){if(!S.settings.pin)return;const L=$('#lock');L.classList.remove('hidden');$('#lockTitle').textContent=t('enterPin');const i=$('#pinIn');i.value='';i.oninput=()=>{if(i.value.length===4){if(i.value===S.settings.pin){L.classList.add('hidden')}else{$('#pinErr').textContent=t('wrongPin');i.value=''}}};setTimeout(()=>i.focus(),100)}
+$('#back').onclick=()=>go('home');$('#fab').onclick=()=>view==='person'?entryForm(pid):personForm(null);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')lock()});
+applyTheme();lock();render();
+if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+</script>
+</body>
+</html>
